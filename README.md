@@ -1,19 +1,17 @@
-Attempt at a discord bot to organise my life.
+###Attempt at a discord bot to organise my life.
 
-Need a `creds.json` file in same dir as artemis. Format:
+Create a postgresql database with given schema and manually add first superuser (`is_superuser` and `can_alias` should be `true`).
 
-```json
-{
-	"token":"TOKEN_STRING_HERE"
-}
-```
-
-Need a `authed_users.json` file in same dir as artemis, with exact discord usernames. Format:
+Need a `creds.json` file in same dir as artemis with Discord token and postgresql databse information. Format:
 
 ```json
 {
-	"authorised_for_all": [
-		"rhiba#0000"
-	]
+	"token":"TOKEN_STRING_HERE",
+	"dbinfo": {
+		"dbname":"NAME_HERE",
+		"user":"USERNAME_HERE",
+		"host":"PROBABLY_LOCALHOST_HERE",
+		"password":"HUNTER2_HERE"
+	}
 }
 ```
