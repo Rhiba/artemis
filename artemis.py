@@ -43,6 +43,11 @@ async def hello(ctx, name: str = None, *args):
 	else:
 		await bot.say("Hi {1}, love {0.message.author.name}!".format(ctx,name))
 
+@bot.command(aliases=["echo"])
+async def say(*string : str):
+	''' <sentence> - Repeats back! '''
+	await bot.say(" ".join(string))
+
 @bot.command(aliases=["choice"])
 async def flip(*choices : str):
 	"""<choice1> <choice2> [choice 3] - Chooses for you!"""
