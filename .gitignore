@@ -1,3 +1,4 @@
 env/*
 creds.json
 authed_users.json
+quick_add.sql

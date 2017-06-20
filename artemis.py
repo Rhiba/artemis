@@ -2,21 +2,32 @@ import discord
 from discord.ext import commands
 import json
 import random
+import psycopg2
 
 bot = commands.Bot(command_prefix=commands.when_mentioned_or('?'), description="Artemis: Rhiba's life organiser.")
 with open('creds.json') as data:
 	creds = json.load(data)
-with open('authed_users.json') as data:
-	users = json.load(data)
-
-authed_users = users["authorised_for_all"]
 token = creds["token"]
+dbinfo = creds["dbinfo"]
+
+# Connect to db and get superusers
+try:
+	connect_str = "dbname='{0}' user='{1}' host='{2}' password='{3}'".format(dbinfo["dbname"],dbinfo["user"],dbinfo["host"],dbinfo["password"])
+	conn = psycopg2.connect(connect_str)
+	cursor = conn.cursor()
+	cursor.execute("""SELECT name FROM users WHERE is_superuser = True;""")
+	rows = cursor.fetchall()
+	superusers = [i[0] for i in rows]
+
+except Exception as e:
+	print("Could not connect to db.")
+	print(e)
+
 
 def check_auth(user):
-	for i in authed_users:
+	for i in superusers:
 		if i == user:
 			return True
-
 	return False
 
 @bot.event
@@ -25,7 +36,7 @@ async def on_ready():
 	print(bot.user.name)
 	print('------')
 	print('Authorised users:')
-	for i in authed_users:
+	for i in superusers:
 		print(i)
 	print('------')
 
