@@ -54,7 +54,7 @@ async def flip(*choices : str):
 	await bot.say(random.choice(choices))
 
 @bot.command()
-async def list_aliases(command : str):
+async def listaliases(command : str):
 	out_string = "Aliases for {0}: ".format(command)
 	if command in bot.commands:
 		if bot.commands[command].aliases:
