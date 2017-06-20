@@ -1,4 +1,4 @@
-##Attempt at a discord bot to organise my life.
+#### Attempt at a discord bot to organise my life.
 
 Create a postgresql database with given schema and manually add first superuser (`is_superuser` and `can_alias` should be `true`).
 
