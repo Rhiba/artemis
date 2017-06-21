@@ -3,6 +3,7 @@ from discord.ext import commands
 import json
 import random
 import psycopg2
+import re
 
 bot = commands.Bot(command_prefix=commands.when_mentioned_or('?'), description="Artemis: Rhiba's life organiser.")
 with open('creds.json') as data:
@@ -44,7 +45,21 @@ async def on_ready():
 async def on_message(message):
 	if message.author.bot:
 		return
-	await bot.process_commands(message)
+	
+	if message.content.startswith('@artemis'):
+		await bot.process_commands(message)
+	elif message.content.startswith('?'):
+		await bot.process_commands(message)
+	else:
+		regex_no_quote = r"([^\+\"\s]+)\+\+(\s|$)"
+		regex_quote = r"\"([^\"]+)\"\+\+(\s|$)"
+		matches_no_quote = [i[0] for i in re.findall(regex_no_quote,message.content)]
+		matches_quote = [i[0] for i in re.findall(regex_quote,message.content)]
+
+		items = matches_no_quote + list(set(matches_quote) - set(matches_no_quote))
+		print(items)
+
+	bot.process_commands(message)
 
 @bot.command(pass_context=True)
 async def hello(ctx, name: str = None, *args):
@@ -79,5 +94,15 @@ async def listaliases(command : str):
 		await bot.say(out_string)
 	else:
 		await bot.say("Command {0} does not exist.".format(command))
+
+@bot.command()
+async def karma(name : str, *args):
+	prep_statement = "SELECT score FROM karma WHERE name = (%s);"
+	cursor.execute(prep_statement, [name.lower()])
+	rows = cursor.fetchall()
+	if rows == []:
+		await bot.say("Sorry, there is no entry for {0} in my database! :confused:".format(name))
+	else:
+		await bot.say("{0} has a score of {1}!".format(name,rows[0][0]))
 
 bot.run(token)
