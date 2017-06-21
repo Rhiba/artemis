@@ -36,8 +36,50 @@ def process_karma(message,conn,cursor):
 			reply = "I have removed karma from {0}, the new score is {1}.".format(neg_items[0],new_scores_neg[0])
 		else:
 			reply = "I have left the karma of {0} unchanged, the score remains as {1}.".format(neut_items[0],new_scores_neut[0])
+	elif len(pos_items) + len(neg_items) + len(neut_items) > 1:
+		reply = "I have changed the karma scores as requested, the scores are now: "
+
+		# Need to filter out repeated ++ then -- in same line
+		if not list(set(pos_items)&set(neg_items)&set(neut_items)) == []:
+			#Karma does not change
+			intersecting = list(set(pos_items)&set(neg_items)&set(neut_items))
+			remove_from_items_and_scores(intersecting,pos_items,new_scores_pos)
+			remove_from_items_and_scores(intersecting,neg_items,new_scores_neg)
+		elif not list(set(pos_items)&set(neg_items)) == []:
+			intersecting = list(set(pos_items)&set(neg_items))
+			remove_from_items_and_scores(intersecting,pos_items,new_scores_pos)
+		elif not list(set(pos_items)&set(neut_items)) == []:
+			intersecting = list(set(pos_items)&set(neut_items))
+			remove_from_items_and_scores(intersecting,pos_items,new_scores_pos)
+		elif not list(set(neg_items)&set(neut_items)) == []:
+			intersecting = list(set(neg_items)&set(neut_items))
+			remove_from_items_and_scores(intersecting,neg_items,new_scores_neg)
+
+
+		all_items = pos_items + neg_items + neut_items
+		all_scores = new_scores_pos + new_scores_neg + new_scores_neut
+		reply = multi_karma_reply_format(reply,all_items,all_scores)
 
 	return reply
+
+def multi_karma_reply_format(reply, items, scores):
+	for idx, i in enumerate(items):
+		reply = reply + "{0} ({1})".format(i,scores[idx])
+		if not i == items[-1]:
+			reply = reply + ", "
+
+	return reply
+
+def remove_from_items_and_scores(intersecting, items, scores):
+			to_remove = []
+			for i in intersecting:
+				to_remove.append(items.index(i))
+				items.remove(i)
+			to_remove.sort()
+			to_remove.reverse()
+			for j in to_remove:
+				del scores[j]
+
 
 def update_from_list(items, k_score, conn, cursor):
 	plus, minus, neutral = 0, 0, 0
