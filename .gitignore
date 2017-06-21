@@ -3,3 +3,4 @@ creds.json
 authed_users.json
 quick_add.sql
 k_schema.sql
+__pycache__/
