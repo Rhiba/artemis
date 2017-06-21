@@ -52,7 +52,9 @@ async def on_message(message):
 	elif message.content.startswith('?'):
 		await bot.process_commands(message)
 	else:
-		process_karma(message,conn,cursor)
+		reply = process_karma(message,conn,cursor)
+		if not reply == "":
+			await bot.send_message(message.channel,reply)
 
 	bot.process_commands(message)
 
