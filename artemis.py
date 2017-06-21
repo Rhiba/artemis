@@ -4,6 +4,7 @@ import json
 import random
 import psycopg2
 import re
+import datetime
 
 bot = commands.Bot(command_prefix=commands.when_mentioned_or('?'), description="Artemis: Rhiba's life organiser.")
 with open('creds.json') as data:
@@ -36,7 +37,7 @@ async def on_ready():
 	print('Logged in as:')
 	print(bot.user.name)
 	print('------')
-	print('Authorised users:')
+	print('Superusers:')
 	for i in superusers:
 		print(i)
 	print('------')
@@ -45,19 +46,43 @@ async def on_ready():
 async def on_message(message):
 	if message.author.bot:
 		return
-	
 	if message.content.startswith('@artemis'):
 		await bot.process_commands(message)
 	elif message.content.startswith('?'):
 		await bot.process_commands(message)
 	else:
-		regex_no_quote = r"([^\+\"\s]+)\+\+(\s|$)"
-		regex_quote = r"\"([^\"]+)\"\+\+(\s|$)"
-		matches_no_quote = [i[0] for i in re.findall(regex_no_quote,message.content)]
-		matches_quote = [i[0] for i in re.findall(regex_quote,message.content)]
+		pos_regex_no_quote = r"([^\+\"\s]+)\+\+(\s|$)"
+		pos_regex_quote = r"\"([^\"]+)\"\+\+(\s|$)"
+		pos_matches_no_quote = [i[0] for i in re.findall(pos_regex_no_quote,message.content)]
+		pos_matches_quote = [i[0] for i in re.findall(pos_regex_quote,message.content)]
+		pos_items = list(set(pos_matches_no_quote)) + list(set(pos_matches_quote) - set(pos_matches_no_quote))
+		print(pos_items)
 
-		items = matches_no_quote + list(set(matches_quote) - set(matches_no_quote))
-		print(items)
+		neg_regex_no_quote = r"([^\+\"\s]+)\-\-(\s|$)"
+		neg_regex_quote = r"\"([^\"]+)\"\-\-(\s|$)"
+		neg_matches_no_quote = [i[0] for i in re.findall(neg_regex_no_quote,message.content)]
+		neg_matches_quote = [i[0] for i in re.findall(neg_regex_quote,message.content)]
+		neg_items = list(set(neg_matches_no_quote)) + list(set(neg_matches_quote) - set(neg_matches_no_quote))
+		print(neg_items)
+
+		neut_regex_no_quote = r"([^\+\"\s]+)(\-\+|\+\-)(\s|$)"
+		neut_regex_quote = r"\"([^\"]+)\"(\-\+|\+\-)(\s|$)"
+		neut_matches_no_quote = [i[0] for i in re.findall(neut_regex_no_quote,message.content)]
+		neut_matches_quote = [i[0] for i in re.findall(neut_regex_quote,message.content)]
+		neut_items = list(set(neut_matches_no_quote)) + list(set(neut_matches_quote) - set(neut_matches_no_quote))
+		print(neut_items)
+		
+		# For each of 3 lists, check if item exists, if so karma it, if not, add it and then print out line of scores
+		for item in pos_items:
+			prep_statement = "SELECT * FROM karma WHERE name = (%s);"
+			cursor.execute(prep_statement, [item.lower()])
+			rows = cursor.fetchall()
+			if rows == []:
+				insert_statement = "INSERT INTO karma(name,added,altered,score,pluses,minuses,neutrals) VALUES (%s,%s,%s,1,1,0,0);"
+				ts = datetime.datetime.now(datetime.timezone.utc)
+				print(str(ts))
+				cursor.execute(insert_statement, (item.lower(),str(ts),str(ts)))
+				conn.commit()
 
 	bot.process_commands(message)
 
