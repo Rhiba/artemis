@@ -9,21 +9,25 @@ def process_karma(message,conn,cursor):
 
 	filtered_content = message.content
 	re.sub(u'```.*```','',filtered_content)
-	
-	pos_regex_no_quote = u"([^\+\"\s]+[^\+\"\s]+)\+\+(\s|$)"
-	pos_regex_quote = u"\"([^\"]+)\"\+\+(\s|$)"
+
+	#TODO: Match fullstops lmaooo
+	pos_regex_no_quote = u"([^\+\"\s]+[^\+\"\s]+)\+\+(\s(for|because)\s+.+?(?=\s([^\+\"\s]+[^\+\"\s]+|\"[^\"]+\")(\+\+|\+\-|\-\+|\-\-))|\s(for|because)\s+.+$|\s\(.+\)|\s|$)"
+	pos_regex_quote = u"\"([^\"]+)\"\+\+(\s(for|because)\s+.+?(?=\s([^\+\"\s]+[^\+\"\s]+|\"[^\"]+\")(\+\+|\+\-|\-\+|\-\-))|\s(for|because)\s+.+$|\s\(.+\)|\s|$)"
+	# Reason here is index 1	
 	pos_matches_no_quote = [i[0] for i in re.findall(pos_regex_no_quote,filtered_content)]
 	pos_matches_quote = [i[0] for i in re.findall(pos_regex_quote,filtered_content)]
 	pos_items = list(set(pos_matches_no_quote)) + list(set(pos_matches_quote) - set(pos_matches_no_quote))
 
-	neg_regex_no_quote = u"([^\+\"\s]+[^\+\"\s]+)\-\-(\s|$)"
-	neg_regex_quote = u"\"([^\"]+)\"\-\-(\s|$)"
+	neg_regex_no_quote = u"([^\+\"\s]+[^\+\"\s]+)\-\-(\s(for|because)\s+.+?(?=\s([^\+\"\s]+[^\+\"\s]+|\"[^\"]+\")(\+\+|\+\-|\-\+|\-\-))|\s(for|because)\s+.+$|\s\(.+\)|\s|$)"
+	neg_regex_quote = u"\"([^\"]+)\"\-\-(\s(for|because)\s+.+?(?=\s([^\+\"\s]+[^\+\"\s]+|\"[^\"]+\")(\+\+|\+\-|\-\+|\-\-))|\s(for|because)\s+.+$|\s\(.+\)|\s|$)"
+	# Reason here is index 1
 	neg_matches_no_quote = [i[0] for i in re.findall(neg_regex_no_quote,filtered_content)]
 	neg_matches_quote = [i[0] for i in re.findall(neg_regex_quote,filtered_content)]
 	neg_items = list(set(neg_matches_no_quote)) + list(set(neg_matches_quote) - set(neg_matches_no_quote))
 
-	neut_regex_no_quote = u"([^\+\"\s]+[^\+\"\s]+)(\-\+|\+\-)(\s|$)"
-	neut_regex_quote = u"\"([^\"]+)\"(\-\+|\+\-)(\s|$)"
+	neut_regex_no_quote = u"([^\+\"\s]+[^\+\"\s]+)(\-\+|\+\-)(\s(for|because)\s+.+?(?=\s([^\+\"\s]+[^\+\"\s]+|\"[^\"]+\")(\+\+|\+\-|\-\+|\-\-))|\s(for|because)\s+.+$|\s\(.+\)|\s|$)"
+	neut_regex_quote = u"\"([^\"]+)\"(\-\+|\+\-)(\s(for|because)\s+.+?(?=\s([^\+\"\s]+[^\+\"\s]+|\"[^\"]+\")(\+\+|\+\-|\-\+|\-\-))|\s(for|because)\s+.+$|\s\(.+\)|\s|$)"
+	# Reason here is index 2
 	neut_matches_no_quote = [i[0] for i in re.findall(neut_regex_no_quote,filtered_content)]
 	neut_matches_quote = [i[0] for i in re.findall(neut_regex_quote,filtered_content)]
 	neut_items = list(set(neut_matches_no_quote)) + list(set(neut_matches_quote) - set(neut_matches_no_quote))
