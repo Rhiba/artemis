@@ -37,6 +37,7 @@ def process_karma(message,conn,cursor):
 
 	if len(pos_items) + len(neut_items) + len(neg_items) == 0:
 		return reply
+
 	
 	uid_statement = "SELECT * FROM users WHERE name = (%s);"
 	cursor.execute(uid_statement,[str(message.author)])
@@ -45,6 +46,30 @@ def process_karma(message,conn,cursor):
 	new_scores_pos = update_from_list(pos_items_with_reasons,1,conn,cursor,uid)
 	new_scores_neg = update_from_list(neg_items_with_reasons,-1,conn,cursor,uid)
 	new_scores_neut = update_from_list(neut_items_with_reasons,0,conn,cursor,uid)
+
+	if str(message.author.name) in pos_items:
+		reply = "You cannot give karma to yourself! Your karma remains unchanged."
+		if len(pos_items)==1 and len(neut_items) ==0 and len(neg_items) == 0:
+			return reply
+		else:
+			reply = reply + "\n"
+		remove_from_items_and_scores([str(message.author.name)],pos_items,new_scores_pos)
+
+	if str(message.author.name) in neg_items:
+		reply = "You cannot remove karma from yourself! Your karma remains unchanged."
+		if len(pos_items)==0 and len(neut_items) ==0 and len(neg_items) == 1:
+			return reply
+		else:
+			reply = reply + "\n"
+		remove_from_items_and_scores([str(message.author.name)],neg_items,new_scores_neg)
+
+	if str(message.author.name) in neut_items:
+		reply = "You can, technically, keep your karma the same, but no record will be taken! Your karma remains unchanged."
+		if len(pos_items)==0 and len(neut_items) ==1 and len(neg_items) == 0:
+			return reply
+		else:
+			reply = reply + "\n"
+		remove_from_items_and_scores([str(message.author.name)],neut_items,new_scores_neut)
 
 	reason_string = ""
 	pos_dict = dict(pos_items_with_reasons)
@@ -55,15 +80,15 @@ def process_karma(message,conn,cursor):
 		if not pos_items == []:
 			if not pos_dict[pos_items[0]] == "":
 				reason_string = " and recorded your reason"
-			reply = "I have given karma to {0}{2}, the new score is {1}!".format(pos_items[0],new_scores_pos[0],reason_string)
+			reply = reply+ "I have given karma to {0}{2}, the new score is {1}!".format(pos_items[0],new_scores_pos[0],reason_string)
 		elif not neg_items == []:
 			if not neg_dict[neg_items[0]] == "":
 				reason_string = " and recorded your reason"
-			reply = "I have removed karma from {0}{2}, the new score is {1}.".format(neg_items[0],new_scores_neg[0],reason_string)
+			reply = reply+ "I have removed karma from {0}{2}, the new score is {1}.".format(neg_items[0],new_scores_neg[0],reason_string)
 		else:
 			if not neut_dict[neut_items[0]] == "":
 				reason_string = " and recorded your reason"
-			reply = "I have left the karma of {0} unchanged{2}, the score remains as {1}.".format(neut_items[0],new_scores_neut[0],reason_string)
+			reply = reply+ "I have left the karma of {0} unchanged{2}, the score remains as {1}.".format(neut_items[0],new_scores_neut[0],reason_string)
 	elif len(pos_items) + len(neg_items) + len(neut_items) > 1:
 		are_reasons = 0
 		for o in pos_items_with_reasons + neg_items_with_reasons + neut_items_with_reasons:
@@ -74,7 +99,7 @@ def process_karma(message,conn,cursor):
 			reason_string = " and recorded your given reason"
 		if are_reasons > 1:
 			reason_string = reason_string + "s"
-		reply = "I have changed the karma scores as requested{0}, the scores are now: ".format(reason_string)
+		reply = reply+ "I have changed the karma scores as requested{0}, the scores are now: ".format(reason_string)
 
 		# Need to filter out repeated ++ then -- in same line
 		if not list(set(pos_items)&set(neg_items)&set(neut_items)) == []:
@@ -88,7 +113,7 @@ def process_karma(message,conn,cursor):
 					reason_string = " and recorded your reason"
 				if count > 1:
 					reason_string = reason_string + "s"
-				reply = "I have left the karma of {0} unchanged{2}, the score remains as {1}.".format(neut_items[0],new_scores_neut[0],reason_string)
+				reply =reply+  "I have left the karma of {0} unchanged{2}, the score remains as {1}.".format(neut_items[0],new_scores_neut[0],reason_string)
 				return reply
 		elif not list(set(pos_items)&set(neg_items)) == []:
 			intersecting = list(set(pos_items)&set(neg_items))
@@ -99,7 +124,7 @@ def process_karma(message,conn,cursor):
 					reason_string = " and recorded your reason"
 				if count > 1:
 					reason_string = reason_string + "s"
-				reply = "I have left the karma of {0} unchanged{2}, the score remains as {1}.".format(neg_items[0],new_scores_neg[0],reason_string)
+				reply = reply+ "I have left the karma of {0} unchanged{2}, the score remains as {1}.".format(neg_items[0],new_scores_neg[0],reason_string)
 				return reply
 		elif not list(set(pos_items)&set(neut_items)) == []:
 			intersecting = list(set(pos_items)&set(neut_items))
@@ -110,7 +135,7 @@ def process_karma(message,conn,cursor):
 					reason_string = " and recorded your reason"
 				if count > 1:
 					reason_string = reason_string + "s"
-				reply = "I have given karma to {0}{2}, the new score is {1}!".format(neut_items[0],new_scores_neut[0],reason_string)
+				reply = reply+ "I have given karma to {0}{2}, the new score is {1}!".format(neut_items[0],new_scores_neut[0],reason_string)
 				return reply
 		elif not list(set(neg_items)&set(neut_items)) == []:
 			intersecting = list(set(neg_items)&set(neut_items))
@@ -121,7 +146,7 @@ def process_karma(message,conn,cursor):
 					reason_string = " and recorded your reason"
 				if count > 1:
 					reason_string = reason_string + "s"
-				reply = "I have removed karma from {0}{2}, the new score is {1}.".format(neut_items[0],new_scores_neut[0],reason_string)
+				reply = reply+ "I have removed karma from {0}{2}, the new score is {1}.".format(neut_items[0],new_scores_neut[0],reason_string)
 				return reply
 
 
