@@ -45,15 +45,27 @@ def process_karma(message,conn,cursor):
 			intersecting = list(set(pos_items)&set(neg_items)&set(neut_items))
 			remove_from_items_and_scores(intersecting,pos_items,new_scores_pos)
 			remove_from_items_and_scores(intersecting,neg_items,new_scores_neg)
+			if len(neut_items) == 1 and len(pos_items) + len(neg_items) == 0:
+				reply = "I have left the karma of {0} unchanged, the score remains as {1}.".format(neut_items[0],new_scores_neut[0])
+				return reply
 		elif not list(set(pos_items)&set(neg_items)) == []:
 			intersecting = list(set(pos_items)&set(neg_items))
 			remove_from_items_and_scores(intersecting,pos_items,new_scores_pos)
+			if len(neg_items) == 1 and len(neut_items) + len(pos_items) == 0:
+				reply = "I have left the karma of {0} unchanged, the score remains as {1}.".format(neg_items[0],new_scores_neg[0])
+				return reply
 		elif not list(set(pos_items)&set(neut_items)) == []:
 			intersecting = list(set(pos_items)&set(neut_items))
 			remove_from_items_and_scores(intersecting,pos_items,new_scores_pos)
+			if len(neut_items) == 1 and len(neg_items) + len(pos_items) == 0:
+				reply = "I have given karma to {0}, the new score is {1}!".format(neut_items[0],new_scores_neut[0])
+				return reply
 		elif not list(set(neg_items)&set(neut_items)) == []:
 			intersecting = list(set(neg_items)&set(neut_items))
 			remove_from_items_and_scores(intersecting,neg_items,new_scores_neg)
+			if len(neut_items) == 1 and len(neg_items) + len(pos_items) == 0:
+				reply = "I have removed karma from {0}, the new score is {1}.".format(neut_items[0],new_scores_neut[0])
+				return reply
 
 
 		all_items = pos_items + neg_items + neut_items
