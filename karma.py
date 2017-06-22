@@ -7,20 +7,20 @@ import psycopg2
 def process_karma(message,conn,cursor):
 	reply = ""
 	
-	pos_regex_no_quote = r"([^\+\"\s]+)\+\+(\s|$)"
-	pos_regex_quote = r"\"([^\"]+)\"\+\+(\s|$)"
+	pos_regex_no_quote = u"([^\+\"\s]+)\+\+(\s|$)"
+	pos_regex_quote = u"\"([^\"]+)\"\+\+(\s|$)"
 	pos_matches_no_quote = [i[0] for i in re.findall(pos_regex_no_quote,message.content)]
 	pos_matches_quote = [i[0] for i in re.findall(pos_regex_quote,message.content)]
 	pos_items = list(set(pos_matches_no_quote)) + list(set(pos_matches_quote) - set(pos_matches_no_quote))
 
-	neg_regex_no_quote = r"([^\+\"\s]+)\-\-(\s|$)"
-	neg_regex_quote = r"\"([^\"]+)\"\-\-(\s|$)"
+	neg_regex_no_quote = u"([^\+\"\s]+)\-\-(\s|$)"
+	neg_regex_quote = u"\"([^\"]+)\"\-\-(\s|$)"
 	neg_matches_no_quote = [i[0] for i in re.findall(neg_regex_no_quote,message.content)]
 	neg_matches_quote = [i[0] for i in re.findall(neg_regex_quote,message.content)]
 	neg_items = list(set(neg_matches_no_quote)) + list(set(neg_matches_quote) - set(neg_matches_no_quote))
 
-	neut_regex_no_quote = r"([^\+\"\s]+)(\-\+|\+\-)(\s|$)"
-	neut_regex_quote = r"\"([^\"]+)\"(\-\+|\+\-)(\s|$)"
+	neut_regex_no_quote = u"([^\+\"\s]+)(\-\+|\+\-)(\s|$)"
+	neut_regex_quote = u"\"([^\"]+)\"(\-\+|\+\-)(\s|$)"
 	neut_matches_no_quote = [i[0] for i in re.findall(neut_regex_no_quote,message.content)]
 	neut_matches_quote = [i[0] for i in re.findall(neut_regex_quote,message.content)]
 	neut_items = list(set(neut_matches_no_quote)) + list(set(neut_matches_quote) - set(neut_matches_no_quote))
