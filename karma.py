@@ -34,10 +34,17 @@ def process_karma(message,conn,cursor):
 	neut_matches_quote = [(i[0],i[2].strip()) for i in re.findall(neut_regex_quote,filtered_content)]
 	neut_items_with_reasons = list(dict(neut_matches_no_quote+neut_matches_quote).items())
 	neut_items = [i[0] for i in neut_items_with_reasons]
+
+	if len(pos_items) + len(neut_items) + len(neg_items) == 0:
+		return reply
 	
-	new_scores_pos = update_from_list(pos_items,1,conn,cursor)
-	new_scores_neg = update_from_list(neg_items,-1,conn,cursor)
-	new_scores_neut = update_from_list(neut_items,0,conn,cursor)
+	uid_statement = "SELECT * FROM users WHERE name = (%s);"
+	cursor.execute(uid_statement,[str(message.author)])
+	rows = cursor.fetchall()
+	uid = rows[0][0]
+	new_scores_pos = update_from_list(pos_items_with_reasons,1,conn,cursor,uid)
+	new_scores_neg = update_from_list(neg_items_with_reasons,-1,conn,cursor,uid)
+	new_scores_neut = update_from_list(neut_items_with_reasons,0,conn,cursor,uid)
 
 	if len(pos_items) + len(neg_items) + len(neut_items) == 1:
 		if not pos_items == []:
@@ -103,7 +110,7 @@ def remove_from_items_and_scores(intersecting, items, scores):
 				del scores[j]
 
 
-def update_from_list(items, k_score, conn, cursor):
+def update_from_list(items, k_score, conn, cursor,uid):
 	plus, minus, neutral = 0, 0, 0
 	if k_score == 1:
 		plus = 1
@@ -115,13 +122,13 @@ def update_from_list(items, k_score, conn, cursor):
 	scores = []
 	for item in items:
 		prep_statement = "SELECT * FROM karma WHERE name = (%s);"
-		cursor.execute(prep_statement, [item.lower()])
+		cursor.execute(prep_statement, [item[0].lower()])
 		rows = cursor.fetchall()
 		if rows == []:
 			scores.append(k_score)
 			insert_statement = "INSERT INTO karma(name,added,altered,score,pluses,minuses,neutrals) VALUES (%s,%s,%s,%s,%s,%s,%s);"
 			ts = str(datetime.datetime.now(datetime.timezone.utc))
-			cursor.execute(insert_statement, (item.lower(),ts,ts,k_score,plus,minus,neutral))
+			cursor.execute(insert_statement, (item[0].lower(),ts,ts,k_score,plus,minus,neutral))
 			conn.commit()
 		else:
 			scores.append(rows[0][4] + k_score)
@@ -130,5 +137,14 @@ def update_from_list(items, k_score, conn, cursor):
 			update_statement = "UPDATE karma SET (altered,score,pluses,minuses,neutrals) = (%s,%s,%s,%s,%s) WHERE id = (%s);"
 			cursor.execute(update_statement,(altered,score,pluses,minuses,neutrals,iden))
 			conn.commit()
+		# Now get id then update reason
+		prep_statement = "SELECT * FROM karma WHERE name = (%s);"
+		cursor.execute(prep_statement, [item[0].lower()])
+		rows = cursor.fetchall()
+		kid = rows[0][0]
+		added = str(datetime.datetime.now(datetime.timezone.utc))
+		insert_reason_statement = "INSERT INTO karma_reasons (kid,uid,added,change,score,reason) VALUES (%s,%s,%s,%s,%s,%s);"
+		cursor.execute(insert_reason_statement,(kid,uid,added,k_score,rows[0][4],item[1]))
+		conn.commit()
 
 	return scores

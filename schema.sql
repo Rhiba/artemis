@@ -15,9 +15,11 @@ CREATE TABLE users(
 	can_alias		BOOLEAN							NOT NULL
 );
 CREATE TABLE karma_reasons(
+	id				BIGSERIAL PRIMARY KEY			NOT NULL,
 	kid				BIGSERIAL REFERENCES karma(id)	NOT NULL,
 	uid				BIGSERIAL REFERENCES users(id)	NOT NULL,
 	added			TIMESTAMP WITHOUT TIME ZONE		NOT NULL,
+	change			INTEGER							NOT NULL,
 	score			INTEGER							NOT NULL,
 	reason			VARCHAR
 );
