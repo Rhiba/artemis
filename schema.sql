@@ -14,3 +14,10 @@ CREATE TABLE users(
 	is_superuser	BOOLEAN							NOT NULL,
 	can_alias		BOOLEAN							NOT NULL
 );
+CREATE TABLE karma_reasons(
+	kid				BIGSERIAL REFERENCES karma(id)	NOT NULL,
+	uid				BIGSERIAL REFERENCES users(id)	NOT NULL,
+	added			TIMESTAMP WITHOUT TIME ZONE		NOT NULL,
+	score			INTEGER							NOT NULL,
+	reason			VARCHAR
+);
