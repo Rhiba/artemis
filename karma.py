@@ -46,15 +46,35 @@ def process_karma(message,conn,cursor):
 	new_scores_neg = update_from_list(neg_items_with_reasons,-1,conn,cursor,uid)
 	new_scores_neut = update_from_list(neut_items_with_reasons,0,conn,cursor,uid)
 
+	reason_string = ""
+	pos_dict = dict(pos_items_with_reasons)
+	neg_dict = dict(neg_items_with_reasons)
+	neut_dict = dict(neut_items_with_reasons)
+
 	if len(pos_items) + len(neg_items) + len(neut_items) == 1:
 		if not pos_items == []:
-			reply = "I have given karma to {0}, the new score is {1}!".format(pos_items[0],new_scores_pos[0])
+			if not pos_dict[pos_items[0]] == "":
+				reason_string = " and recorded your reason"
+			reply = "I have given karma to {0}{2}, the new score is {1}!".format(pos_items[0],new_scores_pos[0],reason_string)
 		elif not neg_items == []:
-			reply = "I have removed karma from {0}, the new score is {1}.".format(neg_items[0],new_scores_neg[0])
+			if not neg_dict[neg_items[0]] == "":
+				reason_string = " and recorded your reason"
+			reply = "I have removed karma from {0}{2}, the new score is {1}.".format(neg_items[0],new_scores_neg[0],reason_string)
 		else:
-			reply = "I have left the karma of {0} unchanged, the score remains as {1}.".format(neut_items[0],new_scores_neut[0])
+			if not neut_dict[neut_items[0]] == "":
+				reason_string = " and recorded your reason"
+			reply = "I have left the karma of {0} unchanged{2}, the score remains as {1}.".format(neut_items[0],new_scores_neut[0],reason_string)
 	elif len(pos_items) + len(neg_items) + len(neut_items) > 1:
-		reply = "I have changed the karma scores as requested, the scores are now: "
+		are_reasons = 0
+		for o in pos_items_with_reasons + neg_items_with_reasons + neut_items_with_reasons:
+			if not o[1] == "":
+				are_reasons = are_reasons+1
+		reason_string = ""
+		if are_reasons > 0:
+			reason_string = " and recorded your given reason"
+		if are_reasons > 1:
+			reason_string = reason_string + "s"
+		reply = "I have changed the karma scores as requested{0}, the scores are now: ".format(reason_string)
 
 		# Need to filter out repeated ++ then -- in same line
 		if not list(set(pos_items)&set(neg_items)&set(neut_items)) == []:
@@ -63,25 +83,45 @@ def process_karma(message,conn,cursor):
 			remove_from_items_and_scores(intersecting,pos_items,new_scores_pos)
 			remove_from_items_and_scores(intersecting,neg_items,new_scores_neg)
 			if len(neut_items) == 1 and len(pos_items) + len(neg_items) == 0:
-				reply = "I have left the karma of {0} unchanged, the score remains as {1}.".format(neut_items[0],new_scores_neut[0])
+				count = sum(1 for y in [neut_dict[neut_items[0]],neg_dict[neut_items[0]],pos_dict[neut_items[0]]] if not y == "")
+				if count > 0:
+					reason_string = " and recorded your reason"
+				if count > 1:
+					reason_string = reason_string + "s"
+				reply = "I have left the karma of {0} unchanged{2}, the score remains as {1}.".format(neut_items[0],new_scores_neut[0],reason_string)
 				return reply
 		elif not list(set(pos_items)&set(neg_items)) == []:
 			intersecting = list(set(pos_items)&set(neg_items))
 			remove_from_items_and_scores(intersecting,pos_items,new_scores_pos)
 			if len(neg_items) == 1 and len(neut_items) + len(pos_items) == 0:
-				reply = "I have left the karma of {0} unchanged, the score remains as {1}.".format(neg_items[0],new_scores_neg[0])
+				count = sum(1 for y in [neg_dict[neg_items[0]],pos_dict[neg_items[0]]] if not y == "")
+				if count > 0:
+					reason_string = " and recorded your reason"
+				if count > 1:
+					reason_string = reason_string + "s"
+				reply = "I have left the karma of {0} unchanged{2}, the score remains as {1}.".format(neg_items[0],new_scores_neg[0],reason_string)
 				return reply
 		elif not list(set(pos_items)&set(neut_items)) == []:
 			intersecting = list(set(pos_items)&set(neut_items))
 			remove_from_items_and_scores(intersecting,pos_items,new_scores_pos)
 			if len(neut_items) == 1 and len(neg_items) + len(pos_items) == 0:
-				reply = "I have given karma to {0}, the new score is {1}!".format(neut_items[0],new_scores_neut[0])
+				count = sum(1 for y in [neut_dict[neut_items[0]],pos_dict[neut_items[0]]] if not y == "")
+				if count > 0:
+					reason_string = " and recorded your reason"
+				if count > 1:
+					reason_string = reason_string + "s"
+				reply = "I have given karma to {0}{2}, the new score is {1}!".format(neut_items[0],new_scores_neut[0],reason_string)
 				return reply
 		elif not list(set(neg_items)&set(neut_items)) == []:
 			intersecting = list(set(neg_items)&set(neut_items))
 			remove_from_items_and_scores(intersecting,neg_items,new_scores_neg)
 			if len(neut_items) == 1 and len(neg_items) + len(pos_items) == 0:
-				reply = "I have removed karma from {0}, the new score is {1}.".format(neut_items[0],new_scores_neut[0])
+				count = sum(1 for y in [neut_dict[neut_items[0]],neg_dict[neut_items[0]]] if not y == "")
+				if count > 0:
+					reason_string = " and recorded your reason"
+				if count > 1:
+					reason_string = reason_string + "s"
+				reply = "I have removed karma from {0}{2}, the new score is {1}.".format(neut_items[0],new_scores_neut[0],reason_string)
 				return reply
 
 
