@@ -12,7 +12,7 @@ with open('creds.json') as data:
 	creds = json.load(data)
 token = creds["token"]
 dbinfo = creds["dbinfo"]
-
+users = []
 # Connect to db and get superusers
 try:
 	connect_str = "dbname='{0}' user='{1}' host='{2}' password='{3}'".format(dbinfo["dbname"],dbinfo["user"],dbinfo["host"],dbinfo["password"])
@@ -21,6 +21,10 @@ try:
 	cursor.execute("""SELECT name FROM users WHERE is_superuser = True;""")
 	rows = cursor.fetchall()
 	superusers = [i[0] for i in rows]
+	cursor.execute("""SELECT name FROM users WHERE is_superuser = False;""")
+	rows = cursor.fetchall()
+	users = [i[0] for i in rows]
+	print("Loaded users and superusers.")
 
 except Exception as e:
 	print("Could not connect to db.")
@@ -47,7 +51,15 @@ async def on_ready():
 async def on_message(message):
 	if message.author.bot:
 		return
-	if message.content.startswith('@artemis'):
+
+	#add user to db if not exist
+	if not str(message.author) in users and not str(message.author) in superusers:
+		insert_statement = 'INSERT INTO users (name, is_superuser, can_alias) values (%s,%s,%s);'
+		cursor.execute(insert_statement,(str(message.author),False,False))
+		conn.commit()
+		users.append(str(message.author))
+
+	if message.content.startswith('<@'+bot.user.id+'>'):
 		await bot.process_commands(message)
 	elif message.content.startswith('?'):
 		await bot.process_commands(message)
