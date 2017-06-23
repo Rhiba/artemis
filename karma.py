@@ -4,7 +4,7 @@ import re
 import datetime
 import psycopg2
 
-def process_karma(message,conn,cursor):
+def process_karma(message,conn,cursor,timeout):
 	reply = ""
 
 	filtered_content = message.content

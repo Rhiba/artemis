@@ -10,6 +10,8 @@ from karma import process_karma
 bot = commands.Bot(command_prefix=commands.when_mentioned_or('?'), description="Artemis: Rhiba's life organiser.")
 with open('creds.json') as data:
 	creds = json.load(data)
+with open('artemis_config.json') as data:
+	config = json.load(data)
 token = creds["token"]
 dbinfo = creds["dbinfo"]
 users = []
@@ -64,7 +66,7 @@ async def on_message(message):
 	elif message.content.startswith('?'):
 		await bot.process_commands(message)
 	else:
-		reply = process_karma(message,conn,cursor)
+		reply = process_karma(message,conn,cursor,config["karma_timeout"])
 		if not reply == "":
 			await bot.send_message(message.channel,reply)
 
