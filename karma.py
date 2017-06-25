@@ -37,15 +37,15 @@ def process_karma(message,conn,cursor,timeout):
 
 	if len(pos_items) + len(neut_items) + len(neg_items) == 0:
 		return reply
-
 	
 	uid_statement = "SELECT * FROM users WHERE name = (%s);"
 	cursor.execute(uid_statement,[str(message.author)])
 	rows = cursor.fetchall()
 	uid = rows[0][0]
-	new_scores_pos = update_from_list(pos_items_with_reasons,1,conn,cursor,uid)
-	new_scores_neg = update_from_list(neg_items_with_reasons,-1,conn,cursor,uid)
-	new_scores_neut = update_from_list(neut_items_with_reasons,0,conn,cursor,uid)
+
+	pos_dict = dict(pos_items_with_reasons)
+	neg_dict = dict(neg_items_with_reasons)
+	neut_dict = dict(neut_items_with_reasons)
 
 	if str(message.author.name) in pos_items:
 		reply = "You cannot give karma to yourself! Your karma remains unchanged."
@@ -53,7 +53,7 @@ def process_karma(message,conn,cursor,timeout):
 			return reply
 		else:
 			reply = reply + "\n"
-		remove_from_items_and_scores([str(message.author.name)],pos_items,new_scores_pos)
+		remove_from_items([str(message.author.name)],pos_dict,pos_items)
 
 	if str(message.author.name) in neg_items:
 		reply = "You cannot remove karma from yourself! Your karma remains unchanged."
@@ -61,7 +61,7 @@ def process_karma(message,conn,cursor,timeout):
 			return reply
 		else:
 			reply = reply + "\n"
-		remove_from_items_and_scores([str(message.author.name)],neg_items,new_scores_neg)
+		remove_from_items([str(message.author.name)],neg_dict,neg_items)
 
 	if str(message.author.name) in neut_items:
 		reply = "You can, technically, keep your karma the same, but no record will be taken! Your karma remains unchanged."
@@ -69,12 +69,12 @@ def process_karma(message,conn,cursor,timeout):
 			return reply
 		else:
 			reply = reply + "\n"
-		remove_from_items_and_scores([str(message.author.name)],neut_items,new_scores_neut)
+		remove_from_items([str(message.author.name)],neut_dict,neut_items)
 
 	reason_string = ""
-	pos_dict = dict(pos_items_with_reasons)
-	neg_dict = dict(neg_items_with_reasons)
-	neut_dict = dict(neut_items_with_reasons)
+	new_scores_pos, reply = update_from_list(pos_dict,pos_items,1,conn,cursor,uid,timeout,reply)
+	new_scores_neg, reply = update_from_list(neg_dict,neg_items,-1,conn,cursor,uid,timeout,reply)
+	new_scores_neut, reply = update_from_list(neut_dict,neut_items,0,conn,cursor,uid,timeout,reply)
 
 	if len(pos_items) + len(neg_items) + len(neut_items) == 1:
 		if not pos_items == []:
@@ -154,6 +154,7 @@ def process_karma(message,conn,cursor,timeout):
 		all_scores = new_scores_pos + new_scores_neg + new_scores_neut
 		reply = multi_karma_reply_format(reply,all_items,all_scores)
 
+	reply = reply.rstrip()
 	return reply
 
 def multi_karma_reply_format(reply, items, scores):
@@ -174,8 +175,13 @@ def remove_from_items_and_scores(intersecting, items, scores):
 			for j in to_remove:
 				del scores[j]
 
+def remove_from_items(intersecting,items_dict,items):
+	for i in intersecting:
+		items_dict.pop(i,None)
+		items.remove(i)
 
-def update_from_list(items, k_score, conn, cursor,uid):
+
+def update_from_list(items,items_list, k_score, conn, cursor,uid,timeout,reply):
 	plus, minus, neutral = 0, 0, 0
 	if k_score == 1:
 		plus = 1
@@ -185,31 +191,49 @@ def update_from_list(items, k_score, conn, cursor,uid):
 		neutral = 1
 
 	scores = []
-	for item in items:
+	to_remove = []
+	for item, reason in items.items():
 		prep_statement = "SELECT * FROM karma WHERE name = (%s);"
-		cursor.execute(prep_statement, [item[0].lower()])
+		cursor.execute(prep_statement, [item.lower()])
 		rows = cursor.fetchall()
 		if rows == []:
 			scores.append(k_score)
 			insert_statement = "INSERT INTO karma(name,added,altered,score,pluses,minuses,neutrals) VALUES (%s,%s,%s,%s,%s,%s,%s);"
 			ts = str(datetime.datetime.now(datetime.timezone.utc))
-			cursor.execute(insert_statement, (item[0].lower(),ts,ts,k_score,plus,minus,neutral))
+			cursor.execute(insert_statement, (item.lower(),ts,ts,k_score,plus,minus,neutral))
 			conn.commit()
 		else:
+			altered = datetime.datetime.now(datetime.timezone.utc)
+			altered_naive = altered.replace(tzinfo=None)
+			last_altered = rows[0][3]
+
+			if (altered_naive - last_altered).seconds < timeout*60:
+				to_remove.append(item)
+				s = ""
+				if not timeout == 1:
+					s = "s"
+				reply = reply + "The karma of {0} has been altered in the past {1} minute{2}, you must be patient!\n".format(item,timeout,s)
+				update_statement = "UPDATE karma SET (altered) = (%s) WHERE id = (%s);"
+				cursor.execute(update_statement,(str(altered),rows[0][0]))
+				conn.commit()
+				continue
+
 			scores.append(rows[0][4] + k_score)
 			iden, score, pluses, minuses, neutrals = rows[0][0], rows[0][4] + k_score, rows[0][5] + plus, rows[0][6] + minus, rows[0][7] + neutral
-			altered = str(datetime.datetime.now(datetime.timezone.utc))
 			update_statement = "UPDATE karma SET (altered,score,pluses,minuses,neutrals) = (%s,%s,%s,%s,%s) WHERE id = (%s);"
-			cursor.execute(update_statement,(altered,score,pluses,minuses,neutrals,iden))
+			cursor.execute(update_statement,(str(altered),score,pluses,minuses,neutrals,iden))
 			conn.commit()
 		# Now get id then update reason
 		prep_statement = "SELECT * FROM karma WHERE name = (%s);"
-		cursor.execute(prep_statement, [item[0].lower()])
+		cursor.execute(prep_statement, [item.lower()])
 		rows = cursor.fetchall()
 		kid = rows[0][0]
 		added = str(datetime.datetime.now(datetime.timezone.utc))
 		insert_reason_statement = "INSERT INTO karma_reasons (kid,uid,added,change,score,reason) VALUES (%s,%s,%s,%s,%s,%s);"
-		cursor.execute(insert_reason_statement,(kid,uid,added,k_score,rows[0][4],item[1]))
+		cursor.execute(insert_reason_statement,(kid,uid,added,k_score,rows[0][4],reason))
 		conn.commit()
 
-	return scores
+	for r in to_remove:
+		items.pop(r,None)
+		items_list.remove(r)
+	return scores, reply
