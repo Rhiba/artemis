@@ -7,10 +7,11 @@ import psycopg2
 def process_karma(message,conn,cursor,timeout):
 	reply = ""
 
+	# Remove any code blocks, don't care about searching those
 	filtered_content = message.content
 	re.sub(u'```.*```','',filtered_content)
 
-	#TODO: Match fullstops lmaooo
+	# Get all positive karmad items and the reasons, dont even ask about this damn regex
 	pos_regex_no_quote = u"([^\+\"\s]+[^\+\"\s]+)\+\+(\s(for|because)\s+.+?(?=\s([^\+\"\s]+[^\+\"\s]+|\"[^\"]+\")(\+\+|\+\-|\-\+|\-\-))|\s(for|because)\s+.+$|\s\(.+\)|\s|$)"
 	pos_regex_quote = u"\"([^\"]+)\"\+\+(\s(for|because)\s+.+?(?=\s([^\+\"\s]+[^\+\"\s]+|\"[^\"]+\")(\+\+|\+\-|\-\+|\-\-))|\s(for|because)\s+.+$|\s\(.+\)|\s|$)"
 	# Reason here is index 1	
@@ -18,7 +19,9 @@ def process_karma(message,conn,cursor,timeout):
 	pos_matches_quote = [(i[0],i[1].strip()) for i in re.findall(pos_regex_quote,filtered_content)]
 	pos_items_with_reasons = list(dict(pos_matches_no_quote+pos_matches_quote).items())
 	pos_items = [i[0] for i in pos_items_with_reasons]
+	pos_dict = dict(pos_items_with_reasons)
 
+	# Get all negative karmad items
 	neg_regex_no_quote = u"([^\+\"\s]+[^\+\"\s]+)\-\-(\s(for|because)\s+.+?(?=\s([^\+\"\s]+[^\+\"\s]+|\"[^\"]+\")(\+\+|\+\-|\-\+|\-\-))|\s(for|because)\s+.+$|\s\(.+\)|\s|$)"
 	neg_regex_quote = u"\"([^\"]+)\"\-\-(\s(for|because)\s+.+?(?=\s([^\+\"\s]+[^\+\"\s]+|\"[^\"]+\")(\+\+|\+\-|\-\+|\-\-))|\s(for|because)\s+.+$|\s\(.+\)|\s|$)"
 	# Reason here is index 1
@@ -26,7 +29,9 @@ def process_karma(message,conn,cursor,timeout):
 	neg_matches_quote = [(i[0],i[1].strip()) for i in re.findall(neg_regex_quote,filtered_content)]
 	neg_items_with_reasons = list(dict(neg_matches_no_quote+neg_matches_quote).items())
 	neg_items = [i[0] for i in neg_items_with_reasons]
+	neg_dict = dict(neg_items_with_reasons)
 
+	# Get all neutral karmad items
 	neut_regex_no_quote = u"([^\+\"\s]+[^\+\"\s]+)(\-\+|\+\-)(\s(for|because)\s+.+?(?=\s([^\+\"\s]+[^\+\"\s]+|\"[^\"]+\")(\+\+|\+\-|\-\+|\-\-))|\s(for|because)\s+.+$|\s\(.+\)|\s|$)"
 	neut_regex_quote = u"\"([^\"]+)\"(\-\+|\+\-)(\s(for|because)\s+.+?(?=\s([^\+\"\s]+[^\+\"\s]+|\"[^\"]+\")(\+\+|\+\-|\-\+|\-\-))|\s(for|because)\s+.+$|\s\(.+\)|\s|$)"
 	# Reason here is index 2
@@ -34,19 +39,19 @@ def process_karma(message,conn,cursor,timeout):
 	neut_matches_quote = [(i[0],i[2].strip()) for i in re.findall(neut_regex_quote,filtered_content)]
 	neut_items_with_reasons = list(dict(neut_matches_no_quote+neut_matches_quote).items())
 	neut_items = [i[0] for i in neut_items_with_reasons]
+	neut_dict = dict(neut_items_with_reasons)
 
+	# If no karmad items, just return
 	if len(pos_items) + len(neut_items) + len(neg_items) == 0:
 		return reply
 	
+	# Get uid of karmaing user
 	uid_statement = "SELECT * FROM users WHERE name = (%s);"
 	cursor.execute(uid_statement,[str(message.author)])
 	rows = cursor.fetchall()
 	uid = rows[0][0]
 
-	pos_dict = dict(pos_items_with_reasons)
-	neg_dict = dict(neg_items_with_reasons)
-	neut_dict = dict(neut_items_with_reasons)
-
+	# Can't karma yourself in any form, silly
 	if str(message.author.name) in pos_items:
 		reply = "You cannot give karma to yourself! Your karma remains unchanged."
 		if len(pos_items)==1 and len(neut_items) ==0 and len(neg_items) == 0:
@@ -71,11 +76,14 @@ def process_karma(message,conn,cursor,timeout):
 			reply = reply + "\n"
 		remove_from_items([str(message.author.name)],neut_dict,neut_items)
 
-	reason_string = ""
+	# Actually update karma scores (if timeout is good) in db
 	new_scores_pos, reply = update_from_list(pos_dict,pos_items,1,conn,cursor,uid,timeout,reply)
 	new_scores_neg, reply = update_from_list(neg_dict,neg_items,-1,conn,cursor,uid,timeout,reply)
 	new_scores_neut, reply = update_from_list(neut_dict,neut_items,0,conn,cursor,uid,timeout,reply)
 
+	reason_string = ""
+
+	# If only one item, artemis says different things.
 	if len(pos_items) + len(neg_items) + len(neut_items) == 1:
 		if not pos_items == []:
 			if not pos_dict[pos_items[0]] == "":
@@ -154,6 +162,7 @@ def process_karma(message,conn,cursor,timeout):
 		all_scores = new_scores_pos + new_scores_neg + new_scores_neut
 		reply = multi_karma_reply_format(reply,all_items,all_scores)
 
+	# Get rid of the trailing newline that occurs if only one item was karmad and it was not past timeout yet
 	reply = reply.rstrip()
 	return reply
 
@@ -236,4 +245,5 @@ def update_from_list(items,items_list, k_score, conn, cursor,uid,timeout,reply):
 	for r in to_remove:
 		items.pop(r,None)
 		items_list.remove(r)
+
 	return scores, reply
