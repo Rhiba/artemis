@@ -33,7 +33,6 @@ except Exception as e:
 	print("Could not connect to db.")
 	print(e)
 
-
 def check_auth(user):
 	for i in superusers:
 		if i == user:
