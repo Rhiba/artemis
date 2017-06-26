@@ -7,6 +7,7 @@ import re
 import datetime
 from karma import process_karma
 
+startup_extensions = ["karmacommands","misccommands"]
 bot = commands.Bot(command_prefix=commands.when_mentioned_or('?'), description="Artemis: Rhiba's life organiser.")
 with open('creds.json') as data:
 	creds = json.load(data)
@@ -72,48 +73,12 @@ async def on_message(message):
 
 	bot.process_commands(message)
 
-@bot.command(pass_context=True)
-async def hello(ctx, name: str = None, *args):
-	"""[name] - Says hello to you or another!"""
-	if name == None:
-		await bot.say("Hi {0.message.author.name}!".format(ctx))
-	else:
-		await bot.say("Hi {1}, love {0.message.author.name}!".format(ctx,name))
 
-@bot.command(aliases=["echo"])
-async def say(*string : str):
-	''' <sentence> - Repeats back! '''
-	await bot.say(" ".join(string))
-
-@bot.command(aliases=["choice"])
-async def flip(*choices : str):
-	"""<choice1> <choice2> [choice 3] - Chooses for you!"""
-	await bot.say(random.choice(choices))
-
-@bot.command()
-async def listaliases(command : str):
-	out_string = "Aliases for {0}: ".format(command)
-	if command in bot.commands:
-		if bot.commands[command].aliases:
-			for alias in bot.commands[command].aliases:
-				out_string = out_string + alias
-				if not bot.commands[command].aliases[-1] == alias:
-					out_string = out_string + ", "
-		else:
-			out_string = out_string + "<none>"
-
-		await bot.say(out_string)
-	else:
-		await bot.say("Command {0} does not exist.".format(command))
-
-@bot.command()
-async def karma(name : str, *args):
-	prep_statement = "SELECT score FROM karma WHERE name = (%s);"
-	cursor.execute(prep_statement, [name.lower()])
-	rows = cursor.fetchall()
-	if rows == []:
-		await bot.say("Sorry, there is no entry for {0} in my database! :confused:".format(name))
-	else:
-		await bot.say("{0} has a score of {1}!".format(name,rows[0][0]))
-
-bot.run(token)
+if __name__ == "__main__":
+	for extension in startup_extensions:
+		try:
+			bot.load_extension(extension)
+		except Exception as e:
+			exc = '{}: {}'.format(type(e).__name__, e)
+			print('Failed to load extension {}\n{}'.format(extension,exc))
+	bot.run(token)
