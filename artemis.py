@@ -36,6 +36,7 @@ except Exception as e:
 	print(e)
 
 commands = dict([(cls.__name__,cls) for cls in Command.__subclasses__()])
+descriptions = dict([(cls.__name__,cls.desc()) for cls in Command.__subclasses__()])
 
 def check_auth(user):
 	for i in superusers:
@@ -73,16 +74,20 @@ async def on_message(message):
 		output = ''
 		for command in to_process:
 			pieces = command.split(' ')
-			if pieces[0] in commands.keys():
+			if pieces[0] == 'help':
+				out = commands[pieces[0]].call(message,[descriptions,pieces[1:]])
+				await bot.send_message(message.channel,out)
+				return
+			elif pieces[0] in commands.keys():
 				args = []
 				#TODO: implement placeholder locations for output of prev command
 				if not output == '':
-					args = [output] + pieces[1:]
+					args = pieces[1:] + [output]
 				else:
 					args = pieces[1:]
 				output = commands[pieces[0]].call(message,args)
 			else:
-				bot.send_message(message.channel,"{0} is not a valid command.".format(pieces[0]))
+				await bot.send_message(message.channel,"{0} is not a valid command.".format(pieces[0]))
 				return
 
 		if not output == "":
