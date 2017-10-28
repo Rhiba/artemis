@@ -6,9 +6,11 @@ import psycopg2
 import re
 import datetime
 from karma import process_karma
+from command import Command
+import misccommands
 
-startup_extensions = ["karmacommands","misccommands"]
-bot = commands.Bot(command_prefix=commands.when_mentioned_or('?'), description="Artemis: Rhiba's life organiser.")
+startup_extensions = ["karmacommands"]
+bot = commands.Bot(command_prefix=commands.when_mentioned_or('?'), description="Artemis: Rhiba's bot.")
 with open('creds.json') as data:
 	creds = json.load(data)
 with open('artemis_config.json') as data:
@@ -32,6 +34,8 @@ try:
 except Exception as e:
 	print("Could not connect to db.")
 	print(e)
+
+commands = dict([(cls.__name__,cls) for cls in Command.__subclasses__()])
 
 def check_auth(user):
 	for i in superusers:
@@ -61,17 +65,33 @@ async def on_message(message):
 		conn.commit()
 		users.append(str(message.author))
 
-	if message.content.startswith('<@'+bot.user.id+'>'):
-		await bot.process_commands(message)
-	elif message.content.startswith('?'):
-		await bot.process_commands(message)
+	if message.content.startswith('<@'+bot.user.id+'>') or message.content.startswith('?'):
+		# PIPES MOTHERFUCKER
+		to_process = message.content[1:].split('|')
+		to_process = [m.lstrip().rstrip() for m in to_process]
+		# All commands MUST output a string
+		output = ''
+		for command in to_process:
+			pieces = command.split(' ')
+			if pieces[0] in commands.keys():
+				args = []
+				#TODO: implement placeholder locations for output of prev command
+				if not output == '':
+					args = [output] + pieces[1:]
+				else:
+					args = pieces[1:]
+				output = commands[pieces[0]].call(message,args)
+			else:
+				bot.send_message(message.channel,"{0} is not a valid command.".format(pieces[0]))
+				return
+
+		if not output == "":
+			await bot.send_message(message.channel,output)
+
 	else:
 		reply = process_karma(message,conn,cursor,config["karma_timeout"])
 		if not reply == "":
 			await bot.send_message(message.channel,reply)
-
-	bot.process_commands(message)
-
 
 if __name__ == "__main__":
 	for extension in startup_extensions:

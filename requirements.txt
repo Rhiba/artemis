@@ -5,3 +5,4 @@ discord.py==0.16.8
 multidict==2.1.6
 psycopg2==2.7.1
 websockets==3.3
+requests==2.18.4
