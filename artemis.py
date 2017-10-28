@@ -8,8 +8,8 @@ import datetime
 from karma import process_karma
 from command import Command
 import misccommands
+import karmacommands
 
-startup_extensions = ["karmacommands"]
 bot = commands.Bot(command_prefix=commands.when_mentioned_or('?'), description="Artemis: Rhiba's bot.")
 with open('creds.json') as data:
 	creds = json.load(data)
@@ -87,7 +87,7 @@ async def on_message(message):
 					args = pieces[1:]
 				output = commands[pieces[0]].call(message,args)
 			else:
-				await bot.send_message(message.channel,"{0} is not a valid command.".format(pieces[0]))
+				await bot.send_message(message.channel,"{0} is not a valid command. :cry:".format(pieces[0]))
 				return
 
 		if not output == "":
@@ -99,10 +99,4 @@ async def on_message(message):
 			await bot.send_message(message.channel,reply)
 
 if __name__ == "__main__":
-	for extension in startup_extensions:
-		try:
-			bot.load_extension(extension)
-		except Exception as e:
-			exc = '{}: {}'.format(type(e).__name__, e)
-			print('Failed to load extension {}\n{}'.format(extension,exc))
 	bot.run(token)
