@@ -9,6 +9,7 @@ from karma import process_karma
 from command import Command
 import misccommands
 import karmacommands
+import shlex
 
 bot = commands.Bot(command_prefix=commands.when_mentioned_or('?'), description="Artemis: Rhiba's bot.")
 with open('creds.json') as data:
@@ -71,18 +72,20 @@ async def on_message(message):
 		to_process = message.content[1:].split('|')
 		to_process = [m.lstrip().rstrip() for m in to_process]
 		# All commands MUST output a string
-		output = ''
+		output = []
 		for command in to_process:
-			pieces = command.split(' ')
+			pieces = shlex.split(command)
 			if pieces[0] == 'help':
-				out = commands[pieces[0]].call(message,[descriptions,pieces[1:]])
-				await bot.send_message(message.channel,out)
-				return
+				if not output == []:
+					args = pieces[1:] + output
+				else:
+					args = pieces[1:]
+				output = commands[pieces[0]].call(message,[descriptions,args])
 			elif pieces[0] in commands.keys():
 				args = []
 				#TODO: implement placeholder locations for output of prev command
-				if not output == '':
-					args = pieces[1:] + [output]
+				if not output == []:
+					args = pieces[1:] + output
 				else:
 					args = pieces[1:]
 				output = commands[pieces[0]].call(message,args)
@@ -90,8 +93,11 @@ async def on_message(message):
 				await bot.send_message(message.channel,"{0} is not a valid command. :cry:".format(pieces[0]))
 				return
 
-		if not output == "":
-			await bot.send_message(message.channel,output)
+		if not output == []:
+			out = ''
+			for o in output:
+				out = out + o + " "
+			await bot.send_message(message.channel,out.rstrip())
 
 	else:
 		reply = process_karma(message,conn,cursor,config["karma_timeout"])

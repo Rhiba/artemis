@@ -8,7 +8,7 @@ from discord.ext import commands
 class karma(Command):
 	def call(ctx,args):
 		if len(args) < 1:
-			return "Please enter a karma item to search for! :face_palm:"
+			return ["Please enter a karma item to search for! :face_palm:"]
 		with open('creds.json') as data:
 			creds = json.load(data)
 		token = creds["token"]
@@ -21,9 +21,9 @@ class karma(Command):
 		cursor.execute(prep_statement, [args[0].lower()])
 		rows = cursor.fetchall()
 		if rows == []:
-			return "Sorry, there is no entry for {0} in my database! :confused:".format(name)
+			return ["Sorry, there is no entry for {0} in my database! :confused:".format(name)]
 		else:
-			return "{0} has a score of {1}!".format(name,rows[0][0])
+			return ["{0} has a score of {1}!".format(name,rows[0][0])]
 	def desc():
 		return "<item> - Returns the amount of karma for the item."
 
@@ -31,7 +31,7 @@ class karma(Command):
 class reason(Command):
 	def call(ctx,args):
 		if len(args) < 1:
-			return "Please enter a karma item to search for! :face_palm:"
+			return ["Please enter a karma item to search for! :face_palm:"]
 		with open('creds.json') as data:
 			creds = json.load(data)
 		token = creds["token"]
@@ -44,19 +44,19 @@ class reason(Command):
 		cursor.execute(prep_statement, [args[0].lower()])
 		rows = cursor.fetchall()
 		if rows == []:
-			return "Sorry, there is no entry for {0} in my database! :confused:".format(name)
+			return ["Sorry, there is no entry for {0} in my database! :confused:".format(name)]
 
 		rows = [i for i in rows if not i[0] == ""]
 		if rows == []:
-			return "Sorry, there are no reasons for {0} in my database! :confused:".format(name)
+			return ["Sorry, there are no reasons for {0} in my database! :confused:".format(name)]
 
 		row = random.choice(rows)
 		if row[1] == -1:
-			return "{} has lost karma {}".format(name,row[0])
+			return ["{} has lost karma {}".format(name,row[0])]
 		elif row[1] == 1:
-			return "{} has gained karma {}".format(name,row[0])
+			return ["{} has gained karma {}".format(name,row[0])]
 		else:
-			return "{} has retained karma {}".format(name,row[0])
+			return ["{} has retained karma {}".format(name,row[0])]
 	
 	def desc():
 		return "<item> - Returns a random reason for this items karma."
